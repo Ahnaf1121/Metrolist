@@ -617,9 +617,11 @@ private fun ThumbnailItem(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colorStops = arrayOf(
                                     0.00f to Color.Transparent,
-                                    0.58f to Color.Transparent,
-                                    0.76f to immersiveGradientColor.copy(alpha = 0.30f),
-                                    0.90f to immersiveGradientColor.copy(alpha = 0.82f),
+                                    0.43f to Color.Transparent,
+                                    0.54f to immersiveGradientColor.copy(alpha = 0.10f),
+                                    0.65f to immersiveGradientColor.copy(alpha = 0.28f),
+                                    0.78f to immersiveGradientColor.copy(alpha = 0.58f),
+                                    0.91f to immersiveGradientColor.copy(alpha = 0.88f),
                                     1.00f to immersiveGradientColor,
                                 ),
                             ),
