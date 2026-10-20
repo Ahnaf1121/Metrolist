@@ -14,7 +14,7 @@ object NewReleaseAlbumPage {
                     ?.musicPlayButtonRenderer
                     ?.playNavigationEndpoint
                     ?.watchPlaylistEndpoint
-                    ?.playlistId ?: return null,
+                    ?.playlistId ?: renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
             title =
                 renderer.title.runs
                     ?.firstOrNull()
