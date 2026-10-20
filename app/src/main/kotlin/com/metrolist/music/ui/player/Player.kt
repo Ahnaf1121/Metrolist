@@ -18,6 +18,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -28,8 +32,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -55,6 +61,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -128,6 +135,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import kotlin.random.Random
 import com.metrolist.music.LocalNavController
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -234,6 +242,8 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
+    val isObsidianPortraitLayout = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT && state.isExpanded && !showInlineLyrics
+
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT,
@@ -262,7 +272,7 @@ fun BottomSheetPlayer(
     val isKeepScreenOn by rememberPreference(KeepScreenOn, false)
     val keepScreenOn = isPlaying && isKeepScreenOn
 
-    DisposableEffect(playerBackground, state.isExpanded, useDarkTheme, keepScreenOn, isFullScreen, hideStatusBarOnFullscreen) {
+    DisposableEffect(playerBackground, state.isExpanded, useDarkTheme, keepScreenOn, isFullScreen, hideStatusBarOnFullscreen, isObsidianPortraitLayout) {
         val window = (context as? android.app.Activity)?.window
         if (window != null && state.isExpanded) {
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -277,7 +287,7 @@ fun BottomSheetPlayer(
                 }
             }
 
-            if (isFullScreen && hideStatusBarOnFullscreen) {
+            if (isObsidianPortraitLayout || (isFullScreen && hideStatusBarOnFullscreen)) {
                 insetsController.hide(WindowInsetsCompat.Type.statusBars())
                 insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             } else {
@@ -306,8 +316,9 @@ fun BottomSheetPlayer(
     }
 
     val onBackgroundColor =
-        when (playerBackground) {
-            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
+        when {
+            isObsidianPortraitLayout -> Color.White
+            playerBackground == PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
             else -> MaterialTheme.colorScheme.onSurface
         }
     val useBlackBackground =
@@ -409,8 +420,8 @@ fun BottomSheetPlayer(
     val defaultGradientColors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
-    LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT) {
+    LaunchedEffect(mediaMetadata?.id, playerBackground, isObsidianPortraitLayout) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || isObsidianPortraitLayout) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -456,9 +467,12 @@ fun BottomSheetPlayer(
         }
     }
 
+    val artworkAccent = gradientColors.firstOrNull() ?: Color(0xFF9D3512)
+    val immersiveGradientColor = Color(artworkAccent.red * 0.72f, artworkAccent.green * 0.72f, artworkAccent.blue * 0.72f, 1f)
+
     val TextBackgroundColor by animateColorAsState(
         targetValue =
-            when (playerBackground) {
+            if (isObsidianPortraitLayout) Color.White else when (playerBackground) {
                 PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
                 PlayerBackgroundStyle.BLUR -> Color.White
                 PlayerBackgroundStyle.GRADIENT -> Color.White
@@ -478,6 +492,8 @@ fun BottomSheetPlayer(
 
     val (textButtonColor, iconButtonColor) =
         when {
+            // Keep the central transport button crisp; metadata actions get glass styling below.
+            isObsidianPortraitLayout -> Pair(Color.White, Color.Black)
             playerBackground == PlayerBackgroundStyle.BLUR ||
                 playerBackground == PlayerBackgroundStyle.GRADIENT -> {
                 when (playerButtonsStyle) {
@@ -531,6 +547,7 @@ fun BottomSheetPlayer(
     // Separate colors for Previous/Next buttons in PRIMARY/TERTIARY modes
     val (sideButtonContainerColor, sideButtonContentColor) =
         when {
+            isObsidianPortraitLayout -> Pair(Color.White.copy(alpha = 0.10f), Color.White)
             playerBackground == PlayerBackgroundStyle.BLUR ||
                 playerBackground == PlayerBackgroundStyle.GRADIENT -> {
                 when (playerButtonsStyle) {
@@ -840,79 +857,138 @@ fun BottomSheetPlayer(
                         .fillMaxSize()
                         .background(bottomSheetBackgroundColor),
             ) {
-                when (playerBackground) {
-                    PlayerBackgroundStyle.BLUR -> {
-                        AnimatedContent(
-                            targetState = mediaMetadata?.thumbnailUrl,
-                            transitionSpec = {
-                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
-                            },
-                            label = "blurBackground",
-                        ) { thumbnailUrl ->
-                            if (thumbnailUrl != null) {
-                                Box(modifier = Modifier.alpha(backgroundAlpha)) {
-                                    AsyncImage(
-                                        model =
-                                            ImageRequest
-                                                .Builder(context)
-                                                .data(thumbnailUrl)
-                                                .size(100, 100)
-                                                .allowHardware(false)
-                                                .build(),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier =
-                                            Modifier
-                                                .fillMaxSize()
-                                                .blur(if (useDarkTheme) 150.dp else 100.dp),
-                                    )
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .fillMaxSize()
-                                                .background(Color.Black.copy(alpha = 0.3f)),
-                                    )
-                                }
-                            }
+                if (isObsidianPortraitLayout) {
+                    // Artwork-derived blurred color field under the upper-half album art.
+                    Box(
+                        Modifier.fillMaxSize()
+                            .background(Color.Black)
+                            .background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0.00f to Color.Black,
+                                        0.40f to immersiveGradientColor.copy(alpha = 0.86f),
+                                        0.62f to immersiveGradientColor.copy(alpha = 0.94f),
+                                        0.82f to immersiveGradientColor.copy(alpha = 0.78f),
+                                        1.00f to Color(0xFF160D0A),
+                                    ),
+                                ),
+                            ),
+                    ) {
+                        if (!mediaMetadata?.thumbnailUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(mediaMetadata?.thumbnailUrl)
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().blur(58.dp).alpha(0.82f),
+                            )
+                        }
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0.00f to Color.Black.copy(alpha = 0.34f),
+                                        0.42f to immersiveGradientColor.copy(alpha = 0.34f),
+                                        0.62f to immersiveGradientColor.copy(alpha = 0.60f),
+                                        0.84f to Color.Black.copy(alpha = 0.48f),
+                                        1.00f to Color.Black.copy(alpha = 0.78f),
+                                    ),
+                                ),
+                            ),
+                        )
+                        val paletteMotion = rememberInfiniteTransition(label = "obsidianPaletteMotion")
+                        val ambientPulse by paletteMotion.animateFloat(
+                            initialValue = 0.72f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(3600, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianPaletteGlowPulse",
+                        )
+                        val glowX by paletteMotion.animateFloat(
+                            initialValue = 0.24f,
+                            targetValue = 0.78f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(9200, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianGlowHorizontal",
+                        )
+                        val glowY by paletteMotion.animateFloat(
+                            initialValue = 0.58f,
+                            targetValue = 0.84f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(7100, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianGlowVertical",
+                        )
+                        Canvas(Modifier.fillMaxSize()) {
+                            val center = Offset(size.width * glowX, size.height * glowY)
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        immersiveGradientColor.copy(alpha = 0.50f * ambientPulse),
+                                        immersiveGradientColor.copy(alpha = 0.18f),
+                                        Color.Transparent,
+                                    ),
+                                    center = center,
+                                    radius = size.width * 1.05f,
+                                ),
+                                center = center,
+                                radius = size.width * 1.05f,
+                            )
                         }
                     }
-
-                    PlayerBackgroundStyle.GRADIENT -> {
-                        AnimatedContent(
-                            targetState = gradientColors,
-                            transitionSpec = {
-                                fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
-                            },
-                            label = "gradientBackground",
-                        ) { colors ->
-                            if (colors.isNotEmpty()) {
-                                val gradientColorStops =
-                                    if (colors.size >= 3) {
-                                        arrayOf(
-                                            0.0f to colors[0],
-                                            0.5f to colors[1],
-                                            1.0f to colors[2],
-                                        )
-                                    } else {
-                                        arrayOf(
-                                            0.0f to colors[0],
-                                            0.6f to colors[0].copy(alpha = 0.7f),
-                                            1.0f to Color.Black,
+                } else {
+                    AnimatedContent(
+                        targetState = mediaMetadata?.thumbnailUrl,
+                        transitionSpec = { fadeIn(tween(650)).togetherWith(fadeOut(tween(650))) },
+                        label = "immersiveLiveArtworkBackground",
+                    ) { thumbnailUrl ->
+                        if (!thumbnailUrl.isNullOrBlank()) {
+                            Box(Modifier.fillMaxSize().alpha(backgroundAlpha)) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.28f))
+                                        .background(Brush.verticalGradient(colors = listOf(
+                                            Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.82f),
+                                        ))),
+                                )
+                                val grainPulse by rememberInfiniteTransition(label = "artworkGrainPulse").animateFloat(
+                                    initialValue = 0.018f,
+                                    targetValue = 0.055f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(190, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Reverse,
+                                    ),
+                                    label = "artworkGrainPulseAlpha",
+                                )
+                                val grainPoints = remember {
+                                    List(760) { Triple(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 1.15f + 0.35f) }
+                                }
+                                Canvas(Modifier.fillMaxSize()) {
+                                    grainPoints.forEach { point ->
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = grainPulse * point.third.coerceAtMost(1.35f)),
+                                            radius = point.third,
+                                            center = Offset(point.first * size.width, point.second * size.height),
                                         )
                                     }
-                                Box(
-                                    Modifier
-                                        .fillMaxSize()
-                                        .alpha(backgroundAlpha)
-                                        .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                                        .background(Color.Black.copy(alpha = 0.2f)),
-                                )
+                                }
                             }
+                        } else {
+                            Box(Modifier.fillMaxSize().background(Color.Black))
                         }
-                    }
-
-                    else -> {
-                        PlayerBackgroundStyle.DEFAULT
                     }
                 }
             }
@@ -993,6 +1069,7 @@ fun BottomSheetPlayer(
                 }
                 Column(
                     modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
                 ) {
                     AnimatedContent(
                         targetState = mediaMetadata.title,
@@ -1006,8 +1083,10 @@ fun BottomSheetPlayer(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = TextBackgroundColor,
+                            textAlign = TextAlign.Start,
                             modifier =
                                 Modifier
+                                    .fillMaxWidth()
                                     .basicMarquee(iterations = 1, initialDelayMillis = 3000, velocity = 30.dp)
                                     .combinedClickable(
                                         enabled = true,
@@ -1067,6 +1146,7 @@ fun BottomSheetPlayer(
                                     style = MaterialTheme.typography.titleMedium.copy(color = TextBackgroundColor),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Start,
                                     onTextLayout = { layoutResult = it },
                                     modifier =
                                         Modifier
@@ -1360,6 +1440,7 @@ fun BottomSheetPlayer(
                                 state = state,
                                 textButtonColor = textButtonColor,
                                 iconButtonColor = iconButtonColor,
+                                isObsidianMenuGlass = isObsidianPortraitLayout,
                             )
                         }
                     }
@@ -1394,7 +1475,7 @@ fun BottomSheetPlayer(
                         },
                         enabled = !isListenTogetherGuest,
                         colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                     )
                 }
 
@@ -1418,7 +1499,7 @@ fun BottomSheetPlayer(
                                 }
                                 sliderPosition = null
                             },
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             isPlaying = effectiveIsPlaying,
                         )
@@ -1442,7 +1523,7 @@ fun BottomSheetPlayer(
                                 sliderPosition = null
                             },
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                             isPlaying = effectiveIsPlaying,
                         )
                     }
@@ -1484,7 +1565,7 @@ fun BottomSheetPlayer(
                                 colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             )
                         },
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                     )
                 }
             }
@@ -1605,7 +1686,8 @@ fun BottomSheetPlayer(
                                 modifier =
                                     Modifier
                                         .height(68.dp)
-                                        .weight(backButtonWeight),
+                                        .weight(backButtonWeight)
+                                        .then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape) else Modifier),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_previous),
@@ -1697,7 +1779,8 @@ fun BottomSheetPlayer(
                                 modifier =
                                     Modifier
                                         .height(68.dp)
-                                        .weight(nextButtonWeight),
+                                        .weight(nextButtonWeight)
+                                        .then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape) else Modifier),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_next),
@@ -1919,49 +2002,53 @@ fun BottomSheetPlayer(
                     targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
                     label = "bottomPadding",
                 )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier =
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding)
-                            .animateContentSize(),
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        // Remember lambdas to prevent unnecessary recomposition
-                        val currentSliderPosition by rememberUpdatedState(sliderPosition)
-                        val sliderPositionProvider = remember { { currentSliderPosition } }
-                        val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        AnimatedContent(
-                            targetState = showInlineLyrics,
-                            label = "Lyrics",
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        ) { showLyrics ->
-                            if (showLyrics) {
-                                InlineLyricsView(
-                                    mediaMetadata = mediaMetadata,
-                                    showLyrics = showLyrics,
-                                    positionProvider = { effectivePosition },
-                                )
-                            } else {
-                                Thumbnail(
-                                    sliderPositionProvider = sliderPositionProvider,
-                                    modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                    isPlayerExpanded = isExpandedProvider,
-                                    isListenTogetherGuest = isListenTogetherGuest,
-                                )
-                            }
+                    // Obsidian-style portrait player: live artwork occupies the whole expanded sheet.
+                    val currentSliderPosition by rememberUpdatedState(sliderPosition)
+                    val sliderPositionProvider = remember { { currentSliderPosition } }
+                    val isExpandedProvider = remember(state) { { state.isExpanded } }
+
+                    AnimatedContent(
+                        targetState = showInlineLyrics,
+                        label = "ImmersiveLyrics",
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        modifier = Modifier.fillMaxSize(),
+                    ) { showLyrics ->
+                        if (showLyrics) {
+                            InlineLyricsView(
+                                mediaMetadata = mediaMetadata,
+                                showLyrics = showLyrics,
+                                positionProvider = { effectivePosition },
+                            )
+                        } else {
+                            Thumbnail(
+                                sliderPositionProvider = sliderPositionProvider,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                isPlayerExpanded = isExpandedProvider,
+                                isListenTogetherGuest = isListenTogetherGuest,
+                                isImmersive = true,
+                                immersiveGradientColor = immersiveGradientColor,
+                            )
                         }
                     }
 
-                    mediaMetadata?.let {
-                        controlsContent(it)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = bottomPadding)
+                            .animateContentSize(),
+                    ) {
+                        Spacer(Modifier.weight(1f))
+                        mediaMetadata?.let { controlsContent(it) }
+                        Spacer(Modifier.height(30.dp))
                     }
-
-                    Spacer(Modifier.height(30.dp))
                 }
             }
         }
@@ -2144,6 +2231,7 @@ private fun PlayerMoreMenuButton(
     state: BottomSheetState,
     textButtonColor: Color,
     iconButtonColor: Color,
+    isObsidianMenuGlass: Boolean = false,
 ) {
     val navController = LocalNavController.current
     val menuState = LocalMenuState.current
@@ -2155,7 +2243,8 @@ private fun PlayerMoreMenuButton(
             Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(textButtonColor)
+                .background(if (isObsidianMenuGlass) Color.White.copy(alpha = 0.12f) else textButtonColor)
+                .then(if (isObsidianMenuGlass) Modifier.border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(24.dp)) else Modifier)
                 .clickable {
                     menuState.show {
                         PlayerMenu(

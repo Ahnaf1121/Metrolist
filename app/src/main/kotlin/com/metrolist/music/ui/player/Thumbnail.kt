@@ -6,6 +6,13 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -19,6 +26,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -202,6 +210,8 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    isImmersive: Boolean = false,
+    immersiveGradientColor: Color = Color(0xFF6F2A13),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -326,7 +336,7 @@ fun Thumbnail(
             exit = fadeOut(),
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (!isLandscape) Modifier.statusBarsPadding() else Modifier),
+                .then(if (!isLandscape && !isImmersive) Modifier.statusBarsPadding() else Modifier),
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -334,7 +344,7 @@ fun Thumbnail(
                 verticalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Top
             ) {
                 // Now Playing header - hide in landscape mode
-                if (!isLandscape) {
+                if (!isLandscape && !isImmersive) {
                     ThumbnailHeader(
                         queueTitle = queueTitle,
                         albumTitle = mediaMetadata?.album?.title,
@@ -347,6 +357,8 @@ fun Thumbnail(
                     contentAlignment = Alignment.Center,
                     modifier = if (isLandscape) {
                         Modifier.weight(1f, false)
+                    } else if (isImmersive) {
+                        Modifier.fillMaxWidth().fillMaxHeight(0.55f)
                     } else {
                         Modifier.fillMaxSize()
                     }
@@ -402,6 +414,9 @@ fun Thumbnail(
                                 context = context,
                                 isLandscape = isLandscape,
                                 isListenTogetherGuest = isListenTogetherGuest,
+                                isPlayerExpanded = isPlayerExpanded,
+                                isImmersive = isImmersive,
+                                immersiveGradientColor = immersiveGradientColor,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl
                             )
@@ -499,6 +514,9 @@ private fun ThumbnailItem(
     context: android.content.Context,
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    isPlayerExpanded: () -> Boolean = { true },
+    isImmersive: Boolean = false,
+    immersiveGradientColor: Color = Color(0xFF6F2A13),
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
     modifier: Modifier = Modifier,
@@ -506,6 +524,14 @@ private fun ThumbnailItem(
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+    var artworkReduced by remember { mutableStateOf(false) }
+    val artworkScale by animateFloatAsState(
+        targetValue = if (artworkReduced) 0.92f else 1f,
+        label = "immersiveArtworkScale",
+    )
+    LaunchedEffect(item.mediaId) {
+        artworkReduced = false
+    }
 
     Box(
         modifier = modifier
@@ -518,13 +544,14 @@ private fun ThumbnailItem(
                         .fillMaxSize()
                 }
             )
-            .padding(horizontal = PlayerHorizontalPadding)
+            .padding(horizontal = if (isLandscape) PlayerHorizontalPadding else 0.dp)
             .graphicsLayer {
                 // Render entire thumbnail item on separate hardware layer for smooth animations
                 compositingStrategy = CompositingStrategy.Offscreen
             }
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = { artworkReduced = !artworkReduced },
                     onDoubleTap = { offset ->
                         if (isListenTogetherGuest) return@detectTapGestures
 
@@ -558,8 +585,12 @@ private fun ThumbnailItem(
     ) {
         Box(
             modifier = Modifier
-                .size(dimensions.thumbnailSize)
-                .clip(RoundedCornerShape(dimensions.cornerRadius))
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = artworkScale
+                    scaleY = artworkScale
+                }
+                .clip(RoundedCornerShape(if (isLandscape) dimensions.cornerRadius else 0.dp))
         ) {
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
@@ -572,10 +603,56 @@ private fun ThumbnailItem(
 
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
+                    // Immersive artwork must crop to fill the available screen area.
+                    cropArtwork = true
                 )
             }
-            
+
+            if (isImmersive && isPlayerExpanded()) {
+                // Keep text and transport controls legible over the moving live artwork.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to Color.Transparent,
+                                    0.43f to Color.Transparent,
+                                    0.54f to immersiveGradientColor.copy(alpha = 0.10f),
+                                    0.65f to immersiveGradientColor.copy(alpha = 0.28f),
+                                    0.78f to immersiveGradientColor.copy(alpha = 0.58f),
+                                    0.91f to immersiveGradientColor.copy(alpha = 0.88f),
+                                    1.00f to immersiveGradientColor,
+                                ),
+                            ),
+                        ),
+                )
+                val grainPulse by rememberInfiniteTransition(label = "obsidianGrain")
+                    .animateFloat(
+                        initialValue = 0.018f,
+                        targetValue = 0.052f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(190, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse,
+                        ),
+                        label = "obsidianGrainPulse",
+                    )
+                val grainPoints = remember {
+                    List(560) {
+                        Triple(kotlin.random.Random.nextFloat(), kotlin.random.Random.nextFloat(), kotlin.random.Random.nextFloat() * 1.1f + 0.3f)
+                    }
+                }
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    grainPoints.forEach { point ->
+                        drawCircle(
+                            color = Color.White.copy(alpha = grainPulse * point.third.coerceAtMost(1.35f)),
+                            radius = point.third,
+                            center = androidx.compose.ui.geometry.Offset(point.first * size.width, point.second * size.height),
+                        )
+                    }
+                }
+            }
+
             // Cast button at top-right corner of thumbnail
             CastButton(
                 modifier = Modifier
