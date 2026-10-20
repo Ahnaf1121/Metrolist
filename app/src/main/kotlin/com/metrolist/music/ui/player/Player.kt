@@ -464,9 +464,12 @@ fun BottomSheetPlayer(
         }
     }
 
+    val artworkAccent = gradientColors.firstOrNull() ?: Color(0xFF9D3512)
+    val immersiveGradientColor = Color(artworkAccent.red * 0.72f, artworkAccent.green * 0.72f, artworkAccent.blue * 0.72f, 1f)
+
     val TextBackgroundColor by animateColorAsState(
         targetValue =
-            when (playerBackground) {
+            if (isObsidianPortraitLayout) Color.White else when (playerBackground) {
                 PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
                 PlayerBackgroundStyle.BLUR -> Color.White
                 PlayerBackgroundStyle.GRADIENT -> Color.White
@@ -486,6 +489,7 @@ fun BottomSheetPlayer(
 
     val (textButtonColor, iconButtonColor) =
         when {
+            isObsidianPortraitLayout -> Pair(Color.White, Color.Black)
             playerBackground == PlayerBackgroundStyle.BLUR ||
                 playerBackground == PlayerBackgroundStyle.GRADIENT -> {
                 when (playerButtonsStyle) {
@@ -1988,6 +1992,7 @@ fun BottomSheetPlayer(
                                 isPlayerExpanded = isExpandedProvider,
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 isImmersive = true,
+                                immersiveGradientColor = immersiveGradientColor,
                             )
                         }
                     }
