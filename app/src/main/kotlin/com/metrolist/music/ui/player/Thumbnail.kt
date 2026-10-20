@@ -512,6 +512,9 @@ private fun ThumbnailItem(
         targetValue = if (artworkReduced) 0.92f else 1f,
         label = "immersiveArtworkScale",
     )
+    LaunchedEffect(item.mediaId) {
+        artworkReduced = false
+    }
 
     Box(
         modifier = modifier
