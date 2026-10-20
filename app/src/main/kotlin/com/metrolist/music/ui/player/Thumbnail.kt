@@ -6,7 +6,13 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -612,13 +618,13 @@ private fun ThumbnailItem(
                             ),
                         ),
                 )
-                val grainPulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "obsidianGrain")
+                val grainPulse by rememberInfiniteTransition(label = "obsidianGrain")
                     .animateFloat(
                         initialValue = 0.018f,
                         targetValue = 0.052f,
-                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-                            animation = androidx.compose.animation.core.tween(190, easing = androidx.compose.animation.core.LinearEasing),
-                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(190, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse,
                         ),
                         label = "obsidianGrainPulse",
                     )
