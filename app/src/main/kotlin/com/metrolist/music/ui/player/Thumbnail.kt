@@ -610,12 +610,12 @@ private fun ThumbnailItem(
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colorStops = arrayOf(
-                                    0.00f to Color.Black.copy(alpha = 0.10f),
-                                    0.38f to Color.Transparent,
-                                    0.60f to Color.Transparent,
-                                    0.73f to Color(0xFFB94B2D).copy(alpha = 0.24f),
-                                    0.86f to Color(0xFF87301F).copy(alpha = 0.48f),
-                                    1.00f to Color.Black.copy(alpha = 0.76f),
+                                    0.00f to Color.Black.copy(alpha = 0.06f),
+                                    0.42f to Color.Transparent,
+                                    0.58f to Color.Black.copy(alpha = 0.10f),
+                                    0.72f to Color.Black.copy(alpha = 0.42f),
+                                    0.86f to Color.Black.copy(alpha = 0.72f),
+                                    1.00f to Color.Black.copy(alpha = 0.96f),
                                 ),
                             ),
                         ),
