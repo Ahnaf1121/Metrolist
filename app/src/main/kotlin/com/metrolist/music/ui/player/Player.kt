@@ -910,8 +910,7 @@ fun BottomSheetPlayer(
                                 modifier = Modifier.fillMaxSize().background(
                                     Brush.radialGradient(
                                         colors = listOf(Color.White.copy(alpha = grainPulse * 0.75f), Color.Transparent),
-                                        center = Offset(size.width * 0.32f, size.height * 0.24f),
-                                        radius = size.maxDimension * 0.82f,
+                                        radius = 900f,
                                     ),
                                 ),
                             )
