@@ -210,6 +210,7 @@ fun Thumbnail(
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
     isImmersive: Boolean = false,
+    immersiveGradientColor: Color = Color(0xFF6F2A13),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -355,6 +356,8 @@ fun Thumbnail(
                     contentAlignment = Alignment.Center,
                     modifier = if (isLandscape) {
                         Modifier.weight(1f, false)
+                    } else if (isImmersive) {
+                        Modifier.fillMaxWidth().fillMaxHeight(0.55f)
                     } else {
                         Modifier.fillMaxSize()
                     }
@@ -412,6 +415,7 @@ fun Thumbnail(
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 isPlayerExpanded = isPlayerExpanded,
                                 isImmersive = isImmersive,
+                                immersiveGradientColor = immersiveGradientColor,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl
                             )
@@ -511,6 +515,7 @@ private fun ThumbnailItem(
     isListenTogetherGuest: Boolean = false,
     isPlayerExpanded: () -> Boolean = { true },
     isImmersive: Boolean = false,
+    immersiveGradientColor: Color = Color(0xFF6F2A13),
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
     modifier: Modifier = Modifier,
@@ -610,12 +615,11 @@ private fun ThumbnailItem(
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colorStops = arrayOf(
-                                    0.00f to Color.Black.copy(alpha = 0.06f),
-                                    0.42f to Color.Transparent,
-                                    0.58f to Color.Black.copy(alpha = 0.10f),
-                                    0.72f to Color.Black.copy(alpha = 0.42f),
-                                    0.86f to Color.Black.copy(alpha = 0.72f),
-                                    1.00f to Color.Black.copy(alpha = 0.96f),
+                                    0.00f to Color.Transparent,
+                                    0.58f to Color.Transparent,
+                                    0.76f to immersiveGradientColor.copy(alpha = 0.30f),
+                                    0.90f to immersiveGradientColor.copy(alpha = 0.82f),
+                                    1.00f to immersiveGradientColor,
                                 ),
                             ),
                         ),
