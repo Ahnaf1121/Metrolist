@@ -35,6 +35,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -60,6 +61,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -489,6 +491,7 @@ fun BottomSheetPlayer(
 
     val (textButtonColor, iconButtonColor) =
         when {
+            // Keep the central transport button crisp; metadata actions get glass styling below.
             isObsidianPortraitLayout -> Pair(Color.White, Color.Black)
             playerBackground == PlayerBackgroundStyle.BLUR ||
                 playerBackground == PlayerBackgroundStyle.GRADIENT -> {
@@ -543,7 +546,7 @@ fun BottomSheetPlayer(
     // Separate colors for Previous/Next buttons in PRIMARY/TERTIARY modes
     val (sideButtonContainerColor, sideButtonContentColor) =
         when {
-            isObsidianPortraitLayout -> Pair(Color.Black.copy(alpha = 0.16f), Color.White)
+            isObsidianPortraitLayout -> Pair(Color.White.copy(alpha = 0.10f), Color.White)
             playerBackground == PlayerBackgroundStyle.BLUR ||
                 playerBackground == PlayerBackgroundStyle.GRADIENT -> {
                 when (playerButtonsStyle) {
@@ -1418,6 +1421,7 @@ fun BottomSheetPlayer(
                                 state = state,
                                 textButtonColor = textButtonColor,
                                 iconButtonColor = iconButtonColor,
+                                isObsidianMenuGlass = isObsidianPortraitLayout,
                             )
                         }
                     }
@@ -1452,7 +1456,7 @@ fun BottomSheetPlayer(
                         },
                         enabled = !isListenTogetherGuest,
                         colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                     )
                 }
 
@@ -1476,7 +1480,7 @@ fun BottomSheetPlayer(
                                 }
                                 sliderPosition = null
                             },
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             isPlaying = effectiveIsPlaying,
                         )
@@ -1500,7 +1504,7 @@ fun BottomSheetPlayer(
                                 sliderPosition = null
                             },
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                             isPlaying = effectiveIsPlaying,
                         )
                     }
@@ -1542,7 +1546,7 @@ fun BottomSheetPlayer(
                                 colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             )
                         },
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding).then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.24f), RoundedCornerShape(50)) else Modifier),
                     )
                 }
             }
@@ -1663,7 +1667,8 @@ fun BottomSheetPlayer(
                                 modifier =
                                     Modifier
                                         .height(68.dp)
-                                        .weight(backButtonWeight),
+                                        .weight(backButtonWeight)
+                                        .then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape) else Modifier),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_previous),
@@ -1755,7 +1760,8 @@ fun BottomSheetPlayer(
                                 modifier =
                                     Modifier
                                         .height(68.dp)
-                                        .weight(nextButtonWeight),
+                                        .weight(nextButtonWeight)
+                                        .then(if (isObsidianPortraitLayout) Modifier.border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape) else Modifier),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_next),
@@ -2206,6 +2212,7 @@ private fun PlayerMoreMenuButton(
     state: BottomSheetState,
     textButtonColor: Color,
     iconButtonColor: Color,
+    isObsidianMenuGlass: Boolean = false,
 ) {
     val navController = LocalNavController.current
     val menuState = LocalMenuState.current
@@ -2217,7 +2224,8 @@ private fun PlayerMoreMenuButton(
             Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(textButtonColor)
+                .background(if (isObsidianMenuGlass) Color.White.copy(alpha = 0.12f) else textButtonColor)
+                .then(if (isObsidianMenuGlass) Modifier.border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(24.dp)) else Modifier)
                 .clickable {
                     menuState.show {
                         PlayerMenu(
