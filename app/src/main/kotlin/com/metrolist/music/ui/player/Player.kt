@@ -852,105 +852,96 @@ fun BottomSheetPlayer(
                         .fillMaxSize()
                         .background(bottomSheetBackgroundColor),
             ) {
-                // Immersive Obsidian-style live artwork: current track cover fills the player surface.
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(650)).togetherWith(fadeOut(tween(650)))
-                    },
-                    label = "immersiveLiveArtworkBackground",
-                ) { thumbnailUrl ->
-                    if (!thumbnailUrl.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .alpha(backgroundAlpha),
-                        ) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(thumbnailUrl)
-                                    .allowHardware(false)
-                                    .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.28f))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Black.copy(alpha = 0.12f),
-                                                Color.Transparent,
-                                                Color.Black.copy(alpha = 0.82f),
-                                            ),
-                                        ),
+                if (isObsidianPortraitLayout) {
+                    // Artwork-derived blurred color field under the upper-half album art.
+                    Box(
+                        Modifier.fillMaxSize()
+                            .background(Color.Black)
+                            .background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0.00f to Color.Black,
+                                        0.40f to immersiveGradientColor.copy(alpha = 0.86f),
+                                        0.62f to immersiveGradientColor.copy(alpha = 0.94f),
+                                        0.82f to immersiveGradientColor.copy(alpha = 0.78f),
+                                        1.00f to Color(0xFF160D0A),
                                     ),
-                            )
-                            val grainPulse by rememberInfiniteTransition(label = "artworkGrainPulse").animateFloat(
-                                initialValue = 0.018f,
-                                targetValue = 0.055f,
+                                ),
+                            ),
+                    ) {
+                        val ambientPulse by rememberInfiniteTransition(label = "obsidianPaletteGlow")
+                            .animateFloat(
+                                initialValue = 0.78f,
+                                targetValue = 1f,
                                 animationSpec = infiniteRepeatable(
-                                    animation = tween(190, easing = LinearEasing),
+                                    animation = tween(3200, easing = LinearEasing),
                                     repeatMode = RepeatMode.Reverse,
                                 ),
-                                label = "artworkGrainPulseAlpha",
+                                label = "obsidianPaletteGlowPulse",
                             )
-                            val grainPoints = remember {
-                                List(760) {
-                                    Triple(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 1.15f + 0.35f)
-                                }
-                            }
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                grainPoints.forEach { point ->
-                                    drawCircle(
-                                        color = Color.White.copy(alpha = grainPulse * point.third.coerceAtMost(1.35f)),
-                                        radius = point.third,
-                                        center = Offset(point.first * size.width, point.second * size.height),
-                                    )
-                                }
-                            }
-                            val ambientShift by rememberInfiniteTransition(label = "obsidianAmbientGlow")
-                                .animateFloat(
-                                    initialValue = 0f,
-                                    targetValue = 1f,
+                        Canvas(Modifier.fillMaxSize()) {
+                            val center = Offset(size.width * 0.38f, size.height * 0.68f)
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        immersiveGradientColor.copy(alpha = 0.50f * ambientPulse),
+                                        immersiveGradientColor.copy(alpha = 0.18f),
+                                        Color.Transparent,
+                                    ),
+                                    center = center,
+                                    radius = size.width * 1.05f,
+                                ),
+                                center = center,
+                                radius = size.width * 1.05f,
+                            )
+                        }
+                    }
+                } else {
+                    AnimatedContent(
+                        targetState = mediaMetadata?.thumbnailUrl,
+                        transitionSpec = { fadeIn(tween(650)).togetherWith(fadeOut(tween(650))) },
+                        label = "immersiveLiveArtworkBackground",
+                    ) { thumbnailUrl ->
+                        if (!thumbnailUrl.isNullOrBlank()) {
+                            Box(Modifier.fillMaxSize().alpha(backgroundAlpha)) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                Box(
+                                    Modifier.fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.28f))
+                                        .background(Brush.verticalGradient(colors = listOf(
+                                            Color.Black.copy(alpha = 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.82f),
+                                        ))),
+                                )
+                                val grainPulse by rememberInfiniteTransition(label = "artworkGrainPulse").animateFloat(
+                                    initialValue = 0.018f,
+                                    targetValue = 0.055f,
                                     animationSpec = infiniteRepeatable(
-                                        animation = tween(6200, easing = LinearEasing),
+                                        animation = tween(190, easing = LinearEasing),
                                         repeatMode = RepeatMode.Reverse,
                                     ),
-                                    label = "obsidianAmbientGlowShift",
+                                    label = "artworkGrainPulseAlpha",
                                 )
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                // Slowly moving red/blue ambient light beneath the artwork.
+                                val grainPoints = remember {
+                                    List(760) { Triple(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 1.15f + 0.35f) }
+                                }
                                 Canvas(Modifier.fillMaxSize()) {
-                                    val phase = ambientShift * size.width * 0.42f
-                                    val redCenter = Offset(size.width * 0.22f + phase, size.height * 0.82f)
-                                    val blueCenter = Offset(size.width * 0.86f - phase, size.height * 0.92f)
-                                    drawCircle(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(Color(0xFFB51F38).copy(alpha = 0.28f), Color.Transparent),
-                                            center = redCenter,
-                                            radius = size.width * 0.82f,
-                                        ),
-                                        radius = size.width * 0.82f,
-                                        center = redCenter,
-                                    )
-                                    drawCircle(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(Color(0xFF244DB8).copy(alpha = 0.25f), Color.Transparent),
-                                            center = blueCenter,
-                                            radius = size.width * 0.78f,
-                                        ),
-                                        radius = size.width * 0.78f,
-                                        center = blueCenter,
-                                    )
+                                    grainPoints.forEach { point ->
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = grainPulse * point.third.coerceAtMost(1.35f)),
+                                            radius = point.third,
+                                            center = Offset(point.first * size.width, point.second * size.height),
+                                        )
+                                    }
                                 }
                             }
+                        } else {
+                            Box(Modifier.fillMaxSize().background(Color.Black))
                         }
-                    } else {
-                        Box(Modifier.fillMaxSize().background(Color.Black))
                     }
                 }
             }
