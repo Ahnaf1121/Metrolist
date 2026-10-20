@@ -19,6 +19,10 @@ on:
       - '.github/workflows/immersive-player-build.yml'
   workflow_dispatch:
 
+concurrency:
+  group: immersive-player-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
