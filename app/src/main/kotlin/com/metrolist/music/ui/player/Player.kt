@@ -240,6 +240,8 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
+    val isObsidianPortraitLayout = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT && state.isExpanded && !showInlineLyrics
+
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT,
@@ -268,7 +270,7 @@ fun BottomSheetPlayer(
     val isKeepScreenOn by rememberPreference(KeepScreenOn, false)
     val keepScreenOn = isPlaying && isKeepScreenOn
 
-    DisposableEffect(playerBackground, state.isExpanded, useDarkTheme, keepScreenOn, isFullScreen, hideStatusBarOnFullscreen) {
+    DisposableEffect(playerBackground, state.isExpanded, useDarkTheme, keepScreenOn, isFullScreen, hideStatusBarOnFullscreen, isObsidianPortraitLayout) {
         val window = (context as? android.app.Activity)?.window
         if (window != null && state.isExpanded) {
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -283,7 +285,7 @@ fun BottomSheetPlayer(
                 }
             }
 
-            if (isFullScreen && hideStatusBarOnFullscreen) {
+            if (isObsidianPortraitLayout || (isFullScreen && hideStatusBarOnFullscreen)) {
                 insetsController.hide(WindowInsetsCompat.Type.statusBars())
                 insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             } else {
@@ -415,8 +417,8 @@ fun BottomSheetPlayer(
     val defaultGradientColors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
-    LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT) {
+    LaunchedEffect(mediaMetadata?.id, playerBackground, isObsidianPortraitLayout) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || isObsidianPortraitLayout) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -967,10 +969,6 @@ fun BottomSheetPlayer(
             )
         },
     ) {
-        val isObsidianPortraitLayout =
-            LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT &&
-                state.isExpanded && !showInlineLyrics
-
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             val playPauseRoundness by animateDpAsState(
                 targetValue = if (isPlaying) 24.dp else 36.dp,
