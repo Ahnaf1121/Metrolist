@@ -869,6 +869,30 @@ fun BottomSheetPlayer(
                                 ),
                             ),
                     ) {
+                        if (!mediaMetadata?.thumbnailUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(mediaMetadata?.thumbnailUrl)
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().blur(58.dp).alpha(0.82f),
+                            )
+                        }
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0.00f to Color.Black.copy(alpha = 0.34f),
+                                        0.42f to immersiveGradientColor.copy(alpha = 0.34f),
+                                        0.62f to immersiveGradientColor.copy(alpha = 0.60f),
+                                        0.84f to Color.Black.copy(alpha = 0.48f),
+                                        1.00f to Color.Black.copy(alpha = 0.78f),
+                                    ),
+                                ),
+                            ),
+                        )
                         val ambientPulse by rememberInfiniteTransition(label = "obsidianPaletteGlow")
                             .animateFloat(
                                 initialValue = 0.78f,
