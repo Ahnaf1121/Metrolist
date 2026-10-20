@@ -609,11 +609,13 @@ private fun ThumbnailItem(
                         .fillMaxSize()
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.10f),
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.18f),
-                                    Color.Black.copy(alpha = 0.76f),
+                                colorStops = arrayOf(
+                                    0.00f to Color.Black.copy(alpha = 0.10f),
+                                    0.38f to Color.Transparent,
+                                    0.60f to Color.Transparent,
+                                    0.73f to Color(0xFFB94B2D).copy(alpha = 0.24f),
+                                    0.86f to Color(0xFF87301F).copy(alpha = 0.48f),
+                                    1.00f to Color.Black.copy(alpha = 0.76f),
                                 ),
                             ),
                         ),
