@@ -1,6 +1,14 @@
 name: Immersive player APK
 
 on:
+  push:
+    branches: [feature/immersive-obsidian-player]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'settings.gradle.kts'
+      - '.github/workflows/immersive-player-build.yml'
   pull_request:
     branches: [main]
     paths:
