@@ -6,6 +6,7 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -506,6 +507,11 @@ private fun ThumbnailItem(
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+    var artworkReduced by remember { mutableStateOf(false) }
+    val artworkScale by animateFloatAsState(
+        targetValue = if (artworkReduced) 0.92f else 1f,
+        label = "immersiveArtworkScale",
+    )
 
     Box(
         modifier = modifier
@@ -525,6 +531,7 @@ private fun ThumbnailItem(
             }
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onTap = { artworkReduced = !artworkReduced },
                     onDoubleTap = { offset ->
                         if (isListenTogetherGuest) return@detectTapGestures
 
@@ -559,6 +566,10 @@ private fun ThumbnailItem(
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
+                .graphicsLayer {
+                    scaleX = artworkScale
+                    scaleY = artworkScale
+                }
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
             if (hidePlayerThumbnail) {
