@@ -905,7 +905,15 @@ fun BottomSheetPlayer(
                                         .fillMaxSize()
                                         .alpha(backgroundAlpha)
                                         .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                                        .background(Color.Black.copy(alpha = 0.2f)),
+                                        .background(Color.Black.copy(alpha = 0.2f))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    Color.Black.copy(alpha = 0.72f),
+                                                ),
+                                            ),
+                                        ),
                                 )
                             }
                         }
