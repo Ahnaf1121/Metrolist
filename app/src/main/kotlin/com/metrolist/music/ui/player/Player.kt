@@ -906,14 +906,42 @@ fun BottomSheetPlayer(
                                     )
                                 }
                             }
-                            Box(
-                                modifier = Modifier.fillMaxSize().background(
-                                    Brush.radialGradient(
-                                        colors = listOf(Color(0xFFFFB36B).copy(alpha = grainPulse * 0.75f), Color.Transparent),
-                                        radius = 900f,
+                            val ambientShift by rememberInfiniteTransition(label = "obsidianAmbientGlow")
+                                .animateFloat(
+                                    initialValue = 0f,
+                                    targetValue = 1f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(6200, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Reverse,
                                     ),
-                                ),
-                            )
+                                    label = "obsidianAmbientGlowShift",
+                                )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                // Slowly moving red/blue ambient light beneath the artwork.
+                                Canvas(Modifier.fillMaxSize()) {
+                                    val phase = ambientShift * size.width * 0.42f
+                                    val redCenter = Offset(size.width * 0.22f + phase, size.height * 0.82f)
+                                    val blueCenter = Offset(size.width * 0.86f - phase, size.height * 0.92f)
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(Color(0xFFB51F38).copy(alpha = 0.28f), Color.Transparent),
+                                            center = redCenter,
+                                            radius = size.width * 0.82f,
+                                        ),
+                                        radius = size.width * 0.82f,
+                                        center = redCenter,
+                                    )
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(Color(0xFF244DB8).copy(alpha = 0.25f), Color.Transparent),
+                                            center = blueCenter,
+                                            radius = size.width * 0.78f,
+                                        ),
+                                        radius = size.width * 0.78f,
+                                        center = blueCenter,
+                                    )
+                                }
+                            }
                         }
                     } else {
                         Box(Modifier.fillMaxSize().background(Color.Black))
@@ -1001,7 +1029,7 @@ fun BottomSheetPlayer(
                 }
                 Column(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = if (isObsidianPortraitLayout) Alignment.CenterHorizontally else Alignment.Start,
+                    horizontalAlignment = Alignment.Start,
                 ) {
                     AnimatedContent(
                         targetState = mediaMetadata.title,
@@ -1015,7 +1043,7 @@ fun BottomSheetPlayer(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = TextBackgroundColor,
-                            textAlign = if (isObsidianPortraitLayout) TextAlign.Center else TextAlign.Start,
+                            textAlign = TextAlign.Start,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -1078,7 +1106,7 @@ fun BottomSheetPlayer(
                                     style = MaterialTheme.typography.titleMedium.copy(color = TextBackgroundColor),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    textAlign = if (isObsidianPortraitLayout) TextAlign.Center else TextAlign.Start,
+                                    textAlign = TextAlign.Start,
                                     onTextLayout = { layoutResult = it },
                                     modifier =
                                         Modifier
