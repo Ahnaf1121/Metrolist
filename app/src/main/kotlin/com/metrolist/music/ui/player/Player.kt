@@ -1923,49 +1923,52 @@ fun BottomSheetPlayer(
                     targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
                     label = "bottomPadding",
                 )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier =
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding)
-                            .animateContentSize(),
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        // Remember lambdas to prevent unnecessary recomposition
-                        val currentSliderPosition by rememberUpdatedState(sliderPosition)
-                        val sliderPositionProvider = remember { { currentSliderPosition } }
-                        val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        AnimatedContent(
-                            targetState = showInlineLyrics,
-                            label = "Lyrics",
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        ) { showLyrics ->
-                            if (showLyrics) {
-                                InlineLyricsView(
-                                    mediaMetadata = mediaMetadata,
-                                    showLyrics = showLyrics,
-                                    positionProvider = { effectivePosition },
-                                )
-                            } else {
-                                Thumbnail(
-                                    sliderPositionProvider = sliderPositionProvider,
-                                    modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                    isPlayerExpanded = isExpandedProvider,
-                                    isListenTogetherGuest = isListenTogetherGuest,
-                                )
-                            }
+                    // Obsidian-style portrait player: live artwork occupies the whole expanded sheet.
+                    val currentSliderPosition by rememberUpdatedState(sliderPosition)
+                    val sliderPositionProvider = remember { { currentSliderPosition } }
+                    val isExpandedProvider = remember(state) { { state.isExpanded } }
+
+                    AnimatedContent(
+                        targetState = showInlineLyrics,
+                        label = "ImmersiveLyrics",
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        modifier = Modifier.fillMaxSize(),
+                    ) { showLyrics ->
+                        if (showLyrics) {
+                            InlineLyricsView(
+                                mediaMetadata = mediaMetadata,
+                                showLyrics = showLyrics,
+                                positionProvider = { effectivePosition },
+                            )
+                        } else {
+                            Thumbnail(
+                                sliderPositionProvider = sliderPositionProvider,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                isPlayerExpanded = isExpandedProvider,
+                                isListenTogetherGuest = isListenTogetherGuest,
+                                isImmersive = true,
+                            )
                         }
                     }
 
-                    mediaMetadata?.let {
-                        controlsContent(it)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = bottomPadding)
+                            .animateContentSize(),
+                    ) {
+                        Spacer(Modifier.weight(1f))
+                        mediaMetadata?.let { controlsContent(it) }
+                        Spacer(Modifier.height(30.dp))
                     }
-
-                    Spacer(Modifier.height(30.dp))
                 }
             }
         }
