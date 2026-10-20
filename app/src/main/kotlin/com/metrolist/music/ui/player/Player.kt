@@ -897,18 +897,36 @@ fun BottomSheetPlayer(
                                 ),
                             ),
                         )
-                        val ambientPulse by rememberInfiniteTransition(label = "obsidianPaletteGlow")
-                            .animateFloat(
-                                initialValue = 0.78f,
-                                targetValue = 1f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(3200, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Reverse,
-                                ),
-                                label = "obsidianPaletteGlowPulse",
-                            )
+                        val paletteMotion = rememberInfiniteTransition(label = "obsidianPaletteMotion")
+                        val ambientPulse by paletteMotion.animateFloat(
+                            initialValue = 0.72f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(3600, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianPaletteGlowPulse",
+                        )
+                        val glowX by paletteMotion.animateFloat(
+                            initialValue = 0.24f,
+                            targetValue = 0.78f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(9200, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianGlowHorizontal",
+                        )
+                        val glowY by paletteMotion.animateFloat(
+                            initialValue = 0.58f,
+                            targetValue = 0.84f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(7100, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "obsidianGlowVertical",
+                        )
                         Canvas(Modifier.fillMaxSize()) {
-                            val center = Offset(size.width * 0.38f, size.height * 0.68f)
+                            val center = Offset(size.width * glowX, size.height * glowY)
                             drawCircle(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
