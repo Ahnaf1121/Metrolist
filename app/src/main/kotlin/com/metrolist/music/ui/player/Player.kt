@@ -909,7 +909,7 @@ fun BottomSheetPlayer(
                             Box(
                                 modifier = Modifier.fillMaxSize().background(
                                     Brush.radialGradient(
-                                        colors = listOf(Color.White.copy(alpha = grainPulse * 0.75f), Color.Transparent),
+                                        colors = listOf(Color(0xFFFFB36B).copy(alpha = grainPulse * 0.75f), Color.Transparent),
                                         radius = 900f,
                                     ),
                                 ),
@@ -939,6 +939,10 @@ fun BottomSheetPlayer(
             )
         },
     ) {
+        val isObsidianPortraitLayout =
+            LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT &&
+                state.isExpanded && !showInlineLyrics
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             val playPauseRoundness by animateDpAsState(
                 targetValue = if (isPlaying) 24.dp else 36.dp,
@@ -997,6 +1001,7 @@ fun BottomSheetPlayer(
                 }
                 Column(
                     modifier = Modifier.weight(1f),
+                    horizontalAlignment = if (isObsidianPortraitLayout) Alignment.CenterHorizontally else Alignment.Start,
                 ) {
                     AnimatedContent(
                         targetState = mediaMetadata.title,
@@ -1010,8 +1015,10 @@ fun BottomSheetPlayer(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = TextBackgroundColor,
+                            textAlign = if (isObsidianPortraitLayout) TextAlign.Center else TextAlign.Start,
                             modifier =
                                 Modifier
+                                    .fillMaxWidth()
                                     .basicMarquee(iterations = 1, initialDelayMillis = 3000, velocity = 30.dp)
                                     .combinedClickable(
                                         enabled = true,
@@ -1071,6 +1078,7 @@ fun BottomSheetPlayer(
                                     style = MaterialTheme.typography.titleMedium.copy(color = TextBackgroundColor),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    textAlign = if (isObsidianPortraitLayout) TextAlign.Center else TextAlign.Start,
                                     onTextLayout = { layoutResult = it },
                                     modifier =
                                         Modifier
