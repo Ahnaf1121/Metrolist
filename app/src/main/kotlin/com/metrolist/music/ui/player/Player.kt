@@ -316,8 +316,9 @@ fun BottomSheetPlayer(
     }
 
     val onBackgroundColor =
-        when (playerBackground) {
-            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
+        when {
+            isObsidianPortraitLayout -> Color.White
+            playerBackground == PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.secondary
             else -> MaterialTheme.colorScheme.onSurface
         }
     val useBlackBackground =
