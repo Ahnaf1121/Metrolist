@@ -527,7 +527,7 @@ private fun ThumbnailItem(
                         .fillMaxSize()
                 }
             )
-            .padding(horizontal = PlayerHorizontalPadding)
+            .padding(horizontal = if (isLandscape) PlayerHorizontalPadding else 0.dp)
             .graphicsLayer {
                 // Render entire thumbnail item on separate hardware layer for smooth animations
                 compositingStrategy = CompositingStrategy.Offscreen
@@ -568,12 +568,12 @@ private fun ThumbnailItem(
     ) {
         Box(
             modifier = Modifier
-                .size(dimensions.thumbnailSize)
+                .fillMaxSize()
                 .graphicsLayer {
                     scaleX = artworkScale
                     scaleY = artworkScale
                 }
-                .clip(RoundedCornerShape(dimensions.cornerRadius))
+                .clip(RoundedCornerShape(if (isLandscape) dimensions.cornerRadius else 0.dp))
         ) {
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
@@ -586,7 +586,8 @@ private fun ThumbnailItem(
 
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
+                    // Immersive artwork must crop to fill the available screen area.
+                    cropArtwork = true
                 )
             }
             
