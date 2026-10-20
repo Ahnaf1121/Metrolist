@@ -18,6 +18,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -28,6 +32,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -128,6 +133,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import kotlin.random.Random
 import com.metrolist.music.LocalNavController
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -876,6 +882,38 @@ fun BottomSheetPlayer(
                                             ),
                                         ),
                                     ),
+                            )
+                            val grainPulse by rememberInfiniteTransition(label = "artworkGrainPulse").animateFloat(
+                                initialValue = 0.018f,
+                                targetValue = 0.055f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(190, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse,
+                                ),
+                                label = "artworkGrainPulseAlpha",
+                            )
+                            val grainPoints = remember {
+                                List(760) {
+                                    Triple(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 1.15f + 0.35f)
+                                }
+                            }
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                grainPoints.forEach { point ->
+                                    drawCircle(
+                                        color = Color.White.copy(alpha = grainPulse * point.third.coerceAtMost(1.35f)),
+                                        radius = point.third,
+                                        center = Offset(point.first * size.width, point.second * size.height),
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(
+                                    Brush.radialGradient(
+                                        colors = listOf(Color.White.copy(alpha = grainPulse * 0.75f), Color.Transparent),
+                                        center = Offset(size.width * 0.32f, size.height * 0.24f),
+                                        radius = size.maxDimension * 0.82f,
+                                    ),
+                                ),
                             )
                         }
                     } else {
